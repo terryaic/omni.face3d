@@ -9,13 +9,34 @@ from pxr import UsdGeom, Gf, Tf
 
 import requests
 import urllib.request
-import shutil
 import sys
 import json
 from requests_toolbelt import MultipartEncoder
+import zipfile
 
-URL = "http://192.168.3.121:8889"
-content_type="image/jpeg"
+def get_mimetype(str1):
+    name = str1.lower()
+    if name.endswith("png"):
+        return "image/png"
+    elif name.endswith("jpg") or name.lower().endswith("jpeg"):
+        return "image/jpeg"
+    elif name.endswith("zip"):
+        return "application/zip"
+    else:
+        return "application/binary"
+
+def get_img_type(str1):
+    name = str1.lower()
+    if name.endswith("png"):
+        return "PNG"
+    elif name.endswith("jpeg") or name.endswith("jpg"):
+        return "JPEG"
+    elif name.endswith("bmp"):
+        return "BMP"
+    else:
+        return None
+
+URL = "https://live.chinaedgecomputing.com/ptt/person/face3d"
 
 def upload_file(in_file):
     ret_url = None
@@ -24,7 +45,8 @@ def upload_file(in_file):
         fs = fp.read()
     m = MultipartEncoder(
             fields={
-                'data': (filename, fs, content_type),
+                'photo': (filename, fs, get_mimetype(filename)),
+                'userid': "omniverse"
             }
         )
     try:
@@ -33,20 +55,31 @@ def upload_file(in_file):
         if r.status_code == 200:
             text = r.content.decode("utf8")
             obj = json.loads(text)
+            print(obj)
             if obj['ret']:
                 ret_url = obj['url']
     except Exception as e:
         print(e)
     return ret_url
 
-def download_file(local_filename, url):
-    with urllib.request.urlopen(url) as response:
+def download_file(outpath, url):
+    response = requests.get(url)
+    if response.status_code == 200:
+        filename = url[url.rfind("/")+1:]
+        local_filename = os.path.join(outpath, filename)
         with open(local_filename, "wb") as f:
-            f.write(response.read())
-        return True
+            f.write(response.content)
+        return local_filename
+    return None
 
-def unzip_file(in_file):
-    pass
+def unzip_file(in_file, outpath):
+    filename = os.path.basename(in_file)
+    filename = filename[:filename.rfind(".")]
+    filepath = os.path.join(outpath, filename)
+    os.mkdir(filepath)
+    zf = zipfile.ZipFile(in_file)
+    zf.extractall(filepath)
+    return filepath
 
 async def convert(in_file, out_file):
     # This import causes conflicts when global?

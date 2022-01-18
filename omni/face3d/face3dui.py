@@ -25,7 +25,7 @@ class Face3dUI:
                     with ui.HStack(height=20):
                         ui.Label("select photo", word_wrap=True, width=ui.Percent(35))
                         upload_button = omni.ui.Button("Add", height=5, style={"padding": 12, "font_size": 20})
-                        upload_button.set_clicked_fn(self._on_image_select_click())
+                        upload_button.set_clicked_fn(self._on_image_select_click)
 
     def _on_filepicker_cancel(self, *args):
         self._filepicker.hide()
@@ -71,12 +71,13 @@ class Face3dUI:
     async def upload(self, filepath):
         url = filehelper.upload_file(filepath)
         if url:
-            fileid = int(time.time())
-            filename = f'%d.zip' % fileid
-            tmp_filepath = os.path.join(os.path.expanduser("~/Pictures"), filename)
-            ret = filehelper.download_file(tmp_filepath, url)
+            outpath = os.path.expanduser("~/Pictures")
+            ret = filehelper.download_file(outpath, url)
             if ret:
-                obj_filepath = filehelper.unzip_file(tmp_filepath)
-                filename = f'%d.usd' % fileid
-                usd_filepath = os.path.join(os.path.expanduser("~/Pictures"), filename)
-                filehelper.convert(obj_filepath, usd_filepath)
+                filename = os.path.basename(ret)
+                filename = filename[:filename.rfind(".")]
+                obj_filepath = filehelper.unzip_file(ret, outpath)
+                obj_filepath = os.path.join(obj_filepath, filename + ".obj.obj")
+                usd_filename = filename + ".usd"
+                usd_filepath = os.path.join(os.path.join(outpath, filename), usd_filename)
+                await filehelper.convert(obj_filepath, usd_filepath)
