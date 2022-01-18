@@ -81,3 +81,11 @@ class Face3dUI:
                 usd_filename = filename + ".usd"
                 usd_filepath = os.path.join(os.path.join(outpath, filename), usd_filename)
                 await filehelper.convert(obj_filepath, usd_filepath)
+                self.insert_into_scene(usd_filepath)
+
+    def insert_into_scene(self, usd_filepath):
+        stage = omni.usd.get_context().get_stage()
+        prim_path = str(stage.GetDefaultPrim().GetPath())
+        over_path = prim_path + "/face"
+        over = stage.OverridePrim(over_path)
+        over.GetReferences().AddReference(usd_filepath)
